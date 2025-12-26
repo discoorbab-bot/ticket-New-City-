@@ -9,7 +9,7 @@ class TicketView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None) # يبقى الزر شغال دائماً
 
-    @discord.ui.button(label="فتح تذكرة 🎫", style=discord.ButtonStyle.orange, custom_id="open_ticket")
+    @discord.ui.button(label="فتح تذكرة 🎫", style=discord.ButtonStyle.success, custom_id="open_ticket")
     async def open_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         guild = interaction.guild
         user = interaction.user
