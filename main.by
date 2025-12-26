@@ -1,0 +1,74 @@
+import discord
+from discord.ext import commands
+from discord.ui import Button, View
+import asyncio
+
+# --- كود أزرار التذكرة ---
+
+class TicketView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None) # يبقى الزر شغال دائماً
+
+    @discord.ui.button(label="فتح تذكرة 🎫", style=discord.ButtonStyle.orange, custom_id="open_ticket")
+    async def open_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        guild = interaction.guild
+        user = interaction.user
+        
+        # إعدادات الصلاحيات (المستخدم والبوت فقط يشوفوا القناة)
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
+        }
+
+        # إنشاء القناة
+        channel = await guild.create_text_channel(f'ticket-{user.name}', overwrites=overwrites)
+        
+        # رسالة ترحيبية داخل التذكرة مع زر الإغلاق
+        embed = discord.Embed(
+            title="🎫 | نظام الدعم الفني",
+            description=f"مرحباً {user.mention}، سيقوم فريق الإدارة بالرد عليك قريباً.\nاضغط على الزر أدناه لإغلاق التذكرة.",
+            color=0xe67e22
+        )
+        
+        await channel.send(embed=embed, view=CloseTicketView())
+        await interaction.response.send_message(f"تم فتح تذكرتك بنجاح: {channel.mention}", ephemeral=True)
+
+class CloseTicketView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="إغلاق التذكرة 🔒", style=discord.ButtonStyle.red, custom_id="close_ticket")
+    async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("سيتم إغلاق التذكرة وحذف القناة بعد 5 ثوانٍ...")
+        await asyncio.sleep(5)
+        await interaction.channel.delete()
+
+# --- إعدادات البوت ---
+
+class Bot(commands.Bot):
+    def __init__(self):
+        intents = discord.Intents.all()
+        super().__init__(command_prefix="!", intents=intents)
+
+    async def on_ready(self):
+        print(f'Logged in as {self.user}')
+        # ربط الأزرار لتبقى شغالة حتى بعد إعادة تشغيل البوت
+        self.add_view(TicketView())
+        self.add_view(CloseTicketView())
+
+bot = Bot()
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def setup_ticket(ctx):
+    embed = discord.Embed(
+        title="🎫 تذاكر الدعم الفني",
+        description="إذا كنت تواجه مشكلة أو تريد تقديم بلاغ، اضغط على الزر أدناه لفتح تذكرة خاصة بك.",
+        color=0xe67e22
+    )
+    await ctx.send(embed=embed, view=TicketView())
+
+# --- تشغيل البوت ---
+# ملاحظة: استبدل 'YOUR_TOKEN_HERE' بالتوكن الجديد الخاص بك
+bot.run('MTM4NjUzMjE1NjQ3NzY2OTM5Ng.Gjs2cJ.oqloG2GL5SEtVnXQoJmM-Pki8ma7qJODGLjj2k')
